@@ -1,0 +1,6 @@
+﻿<Solution>
+  <Project Path="TSI.Core.csproj" />
+  <Project Path="TSI.Demo.csproj" />
+  <Project Path="TSI.App.csproj" />
+  <Project Path="TSI.Editor.csproj" />
+</Solution>
