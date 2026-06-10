@@ -4,29 +4,32 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
+using VContainer.Unity;
 
 namespace TSI.Core.Scene
 {
     public class StandardCustomSceneManager : ICustomSceneManager
     {
         private readonly Dictionary<SceneHandle, SceneNode> _nodes = new();
-        private readonly Dictionary<SceneRef, int> _instanceCounters = new();
+        private readonly Dictionary<SceneProfile, int> _instanceCounters = new();
+        private readonly Dictionary<UnityEngine.SceneManagement.Scene, SceneHandle> _sceneToHandle = new();
 
-        public async UniTask<SceneHandle> LoadScene(SceneRef target, SceneHandle parent, SceneTransitionOptions options = default)
+        public async UniTask<SceneHandle> LoadScene(SceneProfile target, SceneHandle parent, SceneTransitionOptions options = default)
         {
-            // 1) 대상 씬 로드 시작 (메모리 적재만 진행)
-            var loadOp = Addressables.LoadSceneAsync(target.ScenePath, activateOnLoad: false, loadMode: UnityEngine.SceneManagement.LoadSceneMode.Additive);
+            if (target == null) throw new System.ArgumentNullException(nameof(target));
 
+            var parentNode = _nodes[parent];
             AsyncOperationHandle<SceneInstance> loadingSceneHandle = default;
-            bool hasLoadingScreen = options.LoadingSceneProfile != null;
+            AsyncOperationHandle<SceneInstance> loadOp = default;
+            bool hasLoadingScreen = options.LoadingScene != null;
 
             try
             {
-                // 로딩 씬 처리 시작
                 if (hasLoadingScreen)
                 {
+                    // 1) 로딩 씬 로드 (activateOnLoad: true)
                     loadingSceneHandle = Addressables.LoadSceneAsync(
-                        options.LoadingSceneProfile.SceneRef.ScenePath,
+                        options.LoadingScene.ScenePath,
                         activateOnLoad: true,
                         loadMode: UnityEngine.SceneManagement.LoadSceneMode.Additive);
 
@@ -36,34 +39,80 @@ namespace TSI.Core.Scene
                     // 로딩창 등장 연출 완료 대기
                     await loadingScreen.Show();
 
-                    // 대상 씬 로딩 루프
-                    while (!loadOp.IsDone)
-                    {
-                        // 팁: activateOnLoad가 false일 때 PercentComplete는 최대 0.9까지만 올라갑니다.
-                        // 유저에게 90%가 아닌 100%로 보이기 위해 비율을 보정합니다.
-                        float progress = Mathf.Clamp01(loadOp.PercentComplete / 0.9f);
-                        loadingScreen.SetProgress(progress);
+                    // 2) 타겟 씬 로드 시작 (activateOnLoad: false)
+                    loadOp = Addressables.LoadSceneAsync(
+                        target.ScenePath,
+                        activateOnLoad: false,
+                        loadMode: UnityEngine.SceneManagement.LoadSceneMode.Additive);
 
-                        await UniTask.Yield();
+                    // 3) 대상 씬 로딩 루프 (최소 로딩 시간 적용)
+                    float minimumTime = options.MinimumLoadingTime;
+                    float elapsed = 0f;
+
+                    while (!loadOp.IsDone || (minimumTime > 0f && elapsed < minimumTime))
+                    {
+                        // 로드 중 에러 발생 시 무한 루프 탈출
+                        if (loadOp.Status == UnityEngine.ResourceManagement.AsyncOperations.AsyncOperationStatus.Failed)
+                        {
+                            throw new System.Exception($"Scene load failed: {target.ScenePath}");
+                        }
+
+                        elapsed += UnityEngine.Time.unscaledDeltaTime;
+
+                        // activateOnLoad가 false일 때 PercentComplete는 최대 0.9까지만 올라감
+                        float loadProgress = Mathf.Clamp01(loadOp.PercentComplete / 0.9f);
+
+                        if (minimumTime > 0f)
+                        {
+                            float timeProgress = Mathf.Clamp01(elapsed / minimumTime);
+                            loadingScreen.SetProgress(Mathf.Min(loadProgress, timeProgress));
+                        }
+                        else
+                        {
+                            loadingScreen.SetProgress(loadProgress);
+                        }
+
+                        await UniTask.Yield(PlayerLoopTiming.Update);
                     }
                 }
                 else
                 {
-                    // 로딩창이 없다면 백그라운드 로드 완료까지 단순히 대기
+                    // 로딩창이 없다면 대상 씬 로드 완료까지 단순히 대기
+                    loadOp = Addressables.LoadSceneAsync(
+                        target.ScenePath,
+                        activateOnLoad: false,
+                        loadMode: UnityEngine.SceneManagement.LoadSceneMode.Additive);
+
                     await loadOp.ToUniTask();
+
+                    if (loadOp.Status == UnityEngine.ResourceManagement.AsyncOperations.AsyncOperationStatus.Failed)
+                    {
+                        throw new System.Exception($"Scene load failed: {target.ScenePath}");
+                    }
                 }
 
-                // 2) 핸들 생성 & 트리 등록 (로드가 완료되어 데이터가 확보된 시점)
+                // 로드가 완료되어 데이터가 확보된 시점
+                var loadedSceneInstance = loadOp.Result;
+
+                // 핸들 생성 & 트리 등록
                 var nextId = _instanceCounters.TryGetValue(target, out var count) ? count + 1 : 1;
                 _instanceCounters[target] = nextId;
 
                 var sceneHandle = new SceneHandle(target.ScenePath, nextId);
-                _nodes[sceneHandle] = new SceneNode(loadOp);
+                _nodes[sceneHandle] = new SceneNode(loadOp); // Node가 loadOp를 가지도록 구현하신 부분 유지
                 RegisterNode(parent, sceneHandle);
 
-                // 3) ★활성화 (로딩창이 눈앞을 가리고 있는 안전한 상태에서 활성화 수행)
-                var loadedSceneInstance = loadOp.Result;
-                await loadedSceneInstance.ActivateAsync().ToUniTask();
+                _sceneToHandle[loadedSceneInstance.Scene] = sceneHandle;
+
+                // ====================================================================
+                // 3) ★ 타겟 씬 활성화 & VContainer 의존성 주입 (가장 중요한 부분)
+                // ====================================================================
+                // 이 using 블록 안에서 오직 '타겟 씬의 Awake()'만 실행되도록 타이트하게 감쌉니다.
+                using (LifetimeScope.EnqueueParent(parentNode.LifetimeScope))
+                {
+                    await loadedSceneInstance.ActivateAsync().ToUniTask();
+                }
+                // ====================================================================
 
                 // 4) 로딩창 연출 종료
                 if (hasLoadingScreen && loadingSceneHandle.IsValid())
@@ -79,7 +128,7 @@ namespace TSI.Core.Scene
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"씬 로드 중 오류 발생: {ex.Message}");
+                Debug.LogError($"씬 로드 중 오류 발생: {ex}");
                 throw;
             }
             finally
@@ -87,12 +136,13 @@ namespace TSI.Core.Scene
                 // 5) 안전장치: 성공하든 실패하든 생성된 로딩 씬 핸들은 여기서 확실하게 언로드
                 if (hasLoadingScreen && loadingSceneHandle.IsValid())
                 {
-                    await Addressables.UnloadSceneAsync(loadingSceneHandle);
+                    // UnloadSceneAsync도 비동기이므로 확실히 대기
+                    await Addressables.UnloadSceneAsync(loadingSceneHandle, true).ToUniTask();
                 }
             }
         }
 
-        public UniTask<SceneHandle> ReplaceScene(SceneRef target, SceneHandle toReplace, SceneTransitionOptions options = default)
+        public UniTask<SceneHandle> ReplaceScene(SceneProfile target, SceneHandle toReplace, SceneTransitionOptions options = default)
         {
             throw new System.NotImplementedException();
         }
@@ -111,10 +161,18 @@ namespace TSI.Core.Scene
         {
             throw new System.NotImplementedException();
         }
+        public SceneHandle Resolve(UnityEngine.SceneManagement.Scene scene)
+        {
+            return _sceneToHandle[scene];
+        }
+
         public SceneHandle RegisterRootScene(UnityEngine.SceneManagement.Scene bootstrapScene)
         {
+            var scope = FindLifetimeScope(bootstrapScene);
+
             var handle = new SceneHandle(bootstrapScene.path, 0);
-            _nodes[handle] = new SceneNode(bootstrapScene);
+            _nodes[handle] = new SceneNode(bootstrapScene, scope);
+            _sceneToHandle[bootstrapScene] = handle;
             return handle;
         }
 
@@ -131,6 +189,18 @@ namespace TSI.Core.Scene
                 var loadingScreen = go.GetComponentInChildren<ILoadingScreen>();
                 if (loadingScreen != null)
                     return loadingScreen;
+            }
+
+            return null;
+        }
+
+        private LifetimeScope FindLifetimeScope(UnityEngine.SceneManagement.Scene scene)
+        {
+            foreach (var go in scene.GetRootGameObjects())
+            {
+                var lifetimeScope = go.GetComponentInChildren<LifetimeScope>();
+                if (lifetimeScope != null)
+                    return lifetimeScope;
             }
 
             return null;

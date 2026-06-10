@@ -45,16 +45,17 @@ Bootstrap
 
 ## 3. 씬 식별
 
-### SceneRef — 로드 대상 지정
+### SceneProfile — 로드 대상 지정 (ScriptableObject)
 
-아직 로드되지 않은 씬을 지정할 때 사용한다. 씬 에셋 경로를 감싼 값 타입.
+아직 로드되지 않은 씬을 지정할 때 사용한다. 씬 에셋 경로를 보관하는 ScriptableObject.
+Inspector에서 경로를 설정하며, 로딩 씬도 동일한 타입을 사용한다.
 
 ```csharp
-public readonly struct SceneRef
+[CreateAssetMenu(menuName = "TSI/Scene/Scene Profile")]
+public class SceneProfile : ScriptableObject
 {
-    public string ScenePath { get; }
-
-    public SceneRef(string scenePath) => ScenePath = scenePath;
+    [SerializeField] private string scenePath;
+    public string ScenePath => scenePath;
 }
 ```
 
@@ -72,10 +73,7 @@ public readonly struct SceneHandle : IEquatable<SceneHandle>
 
 ### 분리 이유
 
-기존 설계에서는 `SceneKey` 하나가 "로드 대상 지정"과 "로드된 씬 식별" 두 역할을 했다.
-그러나 `SceneKey`는 CSM이 로드 시 생성하는 값(InstanceId 포함)이므로, 로드되지 않은 씬의 `SceneKey`를 호출자가 만들 수 없는 모순이 있었다.
-
-- **SceneRef**: "무엇을 로드할지" — 호출자가 생성
+- **SceneProfile**: "무엇을 로드할지" — Inspector에서 설정, 호출자가 참조
 - **SceneHandle**: "로드된 것을 어떻게 참조할지" — CSM이 생성하여 반환
 
 ---
@@ -93,13 +91,13 @@ public readonly struct SceneHandle : IEquatable<SceneHandle>
 대상 씬을 지정한 부모의 자식으로 Additive 로드한다. 기존 자식은 유지된다.
 
 ```csharp
-UniTask<SceneHandle> LoadScene(SceneRef target, SceneHandle parent, LoadSceneOptions options = default);
+UniTask<SceneHandle> LoadScene(SceneProfile target, SceneHandle parent, SceneTransitionOptions options = default);
 ```
 
 ```csharp
-public struct LoadSceneOptions
+public readonly struct SceneTransitionOptions
 {
-    public bool ShowLoadingScreen;      // true면 등록된 로딩 화면 사용
+    public SceneProfile LoadingScene { get; }     // null이면 로딩 화면 없이 전환
 }
 ```
 
@@ -109,15 +107,10 @@ public struct LoadSceneOptions
 부모는 교체 대상의 부모에서 자동 추론되므로, parent-child 불일치가 구조적으로 불가능하다.
 
 ```csharp
-UniTask<SceneHandle> ReplaceScene(SceneRef target, SceneHandle toReplace, ReplaceSceneOptions options = default);
+UniTask<SceneHandle> ReplaceScene(SceneProfile target, SceneHandle toReplace, SceneTransitionOptions options = default);
 ```
 
-```csharp
-public struct ReplaceSceneOptions
-{
-    public bool ShowLoadingScreen;      // true면 등록된 로딩 화면 사용
-}
-```
+- `SceneTransitionOptions.LoadingScene`에 로딩 씬 프로필을 지정하면 로딩 화면을 표시한다.
 
 - 내부적으로 로딩 화면 표시 → 기존 씬 언로드 → 새 씬 로드 → 로딩 화면 해제 순서로 수행한다.
 - `toReplace`에 자식 노드가 있으면 연쇄 언로드된다.
@@ -166,7 +159,7 @@ stage = await csm.ReplaceScene(Scenes.Stage2, stage);
 
 // 5. 클리어 → MainMenu (Gameplay + 자식 Stage 연쇄 교체)
 mainMenu = await csm.ReplaceScene(Scenes.MainMenu, gameplay,
-    new ReplaceSceneOptions { ShowLoadingScreen = true });
+    new SceneTransitionOptions(loadingScene: Scenes.DefaultLoading));
 
 // 6. 일시정지
 await csm.SuspendScene(stage);
@@ -260,12 +253,13 @@ public interface ILoadingScreen
 
 ### 등록 방식
 
-데모에서는 로딩 화면이 한 종류이므로, CSM 초기화 시 단일 로딩 씬을 등록한다.
-종류가 늘어나면 `ShowLoadingScreen: bool` → `LoadingScreenType?: enum` 으로 확장한다.
+로딩 씬도 `SceneProfile` SO로 관리한다. 전환 시 `SceneTransitionOptions.LoadingScene`에 로딩 씬 프로필을 전달하면 된다.
+종류가 늘어나면 전환마다 다른 `SceneProfile`을 지정할 수 있다.
 
 ```csharp
-// CSM 초기화 시
-csm.RegisterLoadingScreen("Assets/Scenes/Loading/DefaultLoading");
+// 호출 시 로딩 씬 지정
+var options = new SceneTransitionOptions(loadingScene: loadingSceneProfile);
+await csm.ReplaceScene(Scenes.MainMenu, gameplay, options);
 ```
 
 ### 내부 플로우
