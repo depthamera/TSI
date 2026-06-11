@@ -25,6 +25,16 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bd8fdf565729e0e4fbc6676625ba87d1
+    m_Address: Scene/Scenes/00/Game
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e44886b5d6737a94d8b0acf26036fc15
+    m_Address: Scene/Scenes/00/Select
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: f0796fb0b0c9a1648969e407781920a9
     m_Address: Scene/Scenes/00/Loading
     m_ReadOnly: 0
