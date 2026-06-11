@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using VContainer.Unity;
@@ -17,7 +17,7 @@ namespace TSI.Core.Scene
 
         public AsyncOperationHandle<SceneInstance> AddressableHandle { get; }
         public UnityEngine.SceneManagement.Scene BuildInScene { get; }
-        public LifetimeScope LifetimeScope { get; }
+        public LifetimeScope LifetimeScope { get; set; }
         public bool IsActive { get; set; } = true;
 
 		public SceneHandle Parent { get; set; }

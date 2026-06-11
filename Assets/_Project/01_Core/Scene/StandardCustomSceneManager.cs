@@ -1,9 +1,11 @@
-using Cysharp.Threading.Tasks;
+using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.ResourceManagement.ResourceProviders;
+using VContainer;
 using VContainer.Unity;
 
 namespace TSI.Core.Scene
@@ -14,17 +16,17 @@ namespace TSI.Core.Scene
         private readonly Dictionary<SceneProfile, int> _instanceCounters = new();
         private readonly Dictionary<UnityEngine.SceneManagement.Scene, SceneHandle> _sceneToHandle = new();
 
-        public async UniTask<SceneHandle> LoadScene(SceneProfile target, SceneHandle parent, SceneTransitionOptions options = default)
+        public async UniTask<SceneHandle> LoadScene(SceneProfile target, SceneHandle parent, SceneTransitionOptions options = default, Action<IContainerBuilder> extraRegistrations = null)
         {
             if (target == null) throw new System.ArgumentNullException(nameof(target));
 
             var parentNode = _nodes[parent];
             AsyncOperationHandle<SceneInstance> loadingSceneHandle = default;
-            AsyncOperationHandle<SceneInstance> loadOp = default;
             bool hasLoadingScreen = options.LoadingScene != null;
 
             try
             {
+                AsyncOperationHandle<SceneInstance> loadOp;
                 if (hasLoadingScreen)
                 {
                     // 1) 로딩 씬 로드 (activateOnLoad: true)
@@ -99,20 +101,22 @@ namespace TSI.Core.Scene
                 _instanceCounters[target] = nextId;
 
                 var sceneHandle = new SceneHandle(target.ScenePath, nextId);
-                _nodes[sceneHandle] = new SceneNode(loadOp); // Node가 loadOp를 가지도록 구현하신 부분 유지
-                RegisterNode(parent, sceneHandle);
-
-                _sceneToHandle[loadedSceneInstance.Scene] = sceneHandle;
+                _nodes[sceneHandle] = new SceneNode(loadOp);
+                RegisterNode(parent, sceneHandle, loadedSceneInstance.Scene);
 
                 // ====================================================================
                 // 3) ★ 타겟 씬 활성화 & VContainer 의존성 주입 (가장 중요한 부분)
                 // ====================================================================
                 // 이 using 블록 안에서 오직 '타겟 씬의 Awake()'만 실행되도록 타이트하게 감쌉니다.
                 using (LifetimeScope.EnqueueParent(parentNode.LifetimeScope))
+                using (LifetimeScope.Enqueue(extraRegistrations ?? (_ => { })))
                 {
                     await loadedSceneInstance.ActivateAsync().ToUniTask();
                 }
                 // ====================================================================
+
+                // ActivateAsync 이후 씬에 생성된 LifetimeScope를 노드에 등록
+                _nodes[sceneHandle].LifetimeScope = FindLifetimeScope(loadedSceneInstance.Scene);
 
                 // 4) 로딩창 연출 종료
                 if (hasLoadingScreen && loadingSceneHandle.IsValid())
@@ -142,9 +146,18 @@ namespace TSI.Core.Scene
             }
         }
 
-        public UniTask<SceneHandle> ReplaceScene(SceneProfile target, SceneHandle toReplace, SceneTransitionOptions options = default)
+        public async UniTask<SceneHandle> ReplaceScene(SceneProfile target, SceneHandle toReplace, SceneTransitionOptions options = default, Action<IContainerBuilder> extraRegistrations = null)
         {
-            throw new System.NotImplementedException();
+            if (!_nodes.TryGetValue(toReplace, out var node))
+            {
+                Debug.LogWarning($"Scene not found for replace: {toReplace}");
+                return default;
+            }
+
+            var parent = node.Parent;
+
+            await UnloadScene(toReplace);
+            return await LoadScene(target, parent, options, extraRegistrations);
         }
 
         public UniTask ResumeScene(SceneHandle target)
@@ -157,13 +170,31 @@ namespace TSI.Core.Scene
             throw new System.NotImplementedException();
         }
 
-        public UniTask UnloadScene(SceneHandle target)
+        public async UniTask UnloadScene(SceneHandle target)
         {
-            throw new System.NotImplementedException();
+            if (!_nodes.TryGetValue(target, out var node))
+            {
+                Debug.LogWarning($"Scene already unloaded: {target}");
+                return;
+            }
+
+            var childrenSnapshot = new List<SceneHandle>(node.Children);
+            foreach (var child in childrenSnapshot)
+            {
+                await UnloadScene(child);
+            }
+
+            UnregisterNode(target);
+
+            await Addressables.UnloadSceneAsync(node.AddressableHandle, true);
         }
         public SceneHandle Resolve(UnityEngine.SceneManagement.Scene scene)
         {
             return _sceneToHandle[scene];
+        }
+        public SceneHandle GetParent(SceneHandle handle)
+        {
+            return _nodes[handle].Parent;
         }
 
         public SceneHandle RegisterRootScene(UnityEngine.SceneManagement.Scene bootstrapScene)
@@ -176,10 +207,24 @@ namespace TSI.Core.Scene
             return handle;
         }
 
-        private void RegisterNode(SceneHandle parent, SceneHandle child)
+        private void RegisterNode(SceneHandle parent, SceneHandle child, UnityEngine.SceneManagement.Scene scene)
         {
             _nodes[parent].Children.Add(child);
             _nodes[child].Parent = parent;
+            _sceneToHandle[scene] = child;
+        }
+
+        private void UnregisterNode(SceneHandle handle)
+        {
+            if (!_nodes.TryGetValue(handle, out var node)) return;
+
+            _nodes.Remove(handle);
+            _sceneToHandle.Remove(node.AddressableHandle.Result.Scene);
+
+            if (_nodes.TryGetValue(node.Parent, out var parentNode))
+            {
+                parentNode.Children.Remove(handle);
+            }
         }
 
         private ILoadingScreen FindLoadingScreen(UnityEngine.SceneManagement.Scene scene)
