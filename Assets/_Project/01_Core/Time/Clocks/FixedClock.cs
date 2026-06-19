@@ -6,7 +6,7 @@ namespace TSI.Core.Time
     {
         protected float AccumulatedDeltaTime { get; set; }
         
-        public FixedClock(IPublisher<TimeLayer, TickMessage> publisher, TimeLayer layer) : base(publisher, layer) { }
+        public FixedClock(IPublisher<TimeLayerSO, TickMessage> publisher, TimeLayerSO layer) : base(publisher, layer) { }
 
 
         internal override void Tick(float deltaTime)

@@ -8,14 +8,12 @@ using UnityEngine;
 
 using VContainer;
 using VContainer.Unity;
+using TSI.Core;
 
 namespace TSI.Demo.Time
 {
     public class TimePhysicsTestManager : MonoBehaviour
     {
-        public GameObject cam;
-        public GameObject targetSphere;
-    
         public Rigidbody[] rigidbodies;
         public Transform sphereTransform;
 
@@ -26,27 +24,24 @@ namespace TSI.Demo.Time
 
         public SerializableReactiveProperty<float> timeStep = new(0.02f);
 
+        public TimeLayerSO gamePlayLayer;
+
         private readonly Dictionary<Rigidbody, bool> _rigidReturnMap = new();
         private bool _isTransformReturning = false;
         private IFixedClock _fixedClock;
 
         [Inject]
-        public void Construct(ISubscriber<TimeLayer, TickMessage> subscriber, TimeManager manager)
+        public void Construct(ISubscriber<TimeLayerSO, TickMessage> subscriber, TimeManager manager, ProjectTimeSettingsSO projectTimeSettings)
         {
             subscriber
-                .Subscribe(TimeLayer.Physics, MoveRigidbodies)
+                .Subscribe(projectTimeSettings.PhysicsLayer, MoveRigidbodies)
                 .AddTo(destroyCancellationToken);
         
             subscriber
-                .Subscribe(TimeLayer.Gameplay, MoveTransform)
-                .AddTo(destroyCancellationToken);
-        
-            subscriber
-                .Subscribe(TimeLayer.Late, MoveCamera)
+                .Subscribe(gamePlayLayer, MoveTransform)
                 .AddTo(destroyCancellationToken);
 
-            _fixedClock = manager.GetFixedClock(TimeLayer.Physics);
-        
+            _fixedClock = manager.GetFixedClock(projectTimeSettings.PhysicsLayer);  
         }
 
         private void Awake()
@@ -59,16 +54,6 @@ namespace TSI.Demo.Time
             timeStep
                 .Subscribe(v => _fixedClock.FixedTimestep = v)
                 .AddTo(destroyCancellationToken);
-        }
-
-        private void MoveCamera(TickMessage message)
-        {
-            if (!targetSphere) return;
-        
-            var target = targetSphere.transform.position;
-            target.z = cam.transform.position.z;
-
-            cam.transform.position = target;
         }
     
         private void MoveRigidbodies(TickMessage message)

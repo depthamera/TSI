@@ -20,23 +20,23 @@ namespace TSI.Core.Time
         {
             var builder = new TimeHierarchyBuilder();
 
-            var inputClock = new InputClock(_inputUpdater);
-            builder.RegisterRoot(inputClock);
+            //var inputClock = new InputClock(_inputUpdater);
+            //builder.RegisterRoot(inputClock);
             
-            var globalClock = new ContinuousClock(_publisher, TimeLayer.Global);
-            builder.RegisterRoot(globalClock);
+            //var globalClock = new ContinuousClock(_publisher, TimeLayer.Global);
+            //builder.RegisterRoot(globalClock);
 
-            var lateClock = new ContinuousClock(_publisher, TimeLayer.Late);
-            builder.RegisterRoot(lateClock);
+            //var lateClock = new ContinuousClock(_publisher, TimeLayer.Late);
+            //builder.RegisterRoot(lateClock);
             
-            var physicsClock = new PhysicsClock(_publisher, TimeLayer.Physics);
-            builder.RegisterChild(globalClock, physicsClock);
+            //var physicsClock = new PhysicsClock(_publisher, TimeLayer.Physics);
+            //builder.RegisterChild(globalClock, physicsClock);
 
-            var gameClock = new ContinuousClock(_publisher, TimeLayer.Gameplay);
-            builder.RegisterChild(globalClock, gameClock);
+            //var gameClock = new ContinuousClock(_publisher, TimeLayer.Gameplay);
+            //builder.RegisterChild(globalClock, gameClock);
 
-            var uiClock = new ContinuousClock(_publisher, TimeLayer.UI);
-            builder.RegisterChild(globalClock, uiClock);
+            //var uiClock = new ContinuousClock(_publisher, TimeLayer.UI);
+            //builder.RegisterChild(globalClock, uiClock);
 
             return builder.Build();
         }

@@ -14,17 +14,17 @@ namespace TSI.Editor
             Rigidbody rb = (Rigidbody)target;
             var go = rb.gameObject;
 
-            if (rb.interpolation != RigidbodyInterpolation.None)
-            {
-                if (!go.GetComponent<PhysicsBodyComponent>())
-                    go.AddComponent<PhysicsBodyComponent>();
-            }
-            else
-            {
-                var script = go.GetComponent<PhysicsBodyComponent>();
-                if (script)
-                    DestroyImmediate(script);
-            }
+            //if (rb.interpolation != RigidbodyInterpolation.None)
+            //{
+            //    if (!go.GetComponent<PhysicsBodyComponent>())
+            //        go.AddComponent<PhysicsBodyComponent>();
+            //}
+            //else
+            //{
+            //    var script = go.GetComponent<PhysicsBodyComponent>();
+            //    if (script)
+            //        DestroyImmediate(script);
+            //}
         }
     }
 }

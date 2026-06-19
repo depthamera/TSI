@@ -5,7 +5,7 @@ namespace TSI.Core.Time
     public class TimeHierarchyBuilder
     {
         private readonly List<ClockBase> _rootClocks = new();
-        private readonly Dictionary<TimeLayer, IClock> _clocks = new();
+        private readonly Dictionary<TimeLayerSO, IClock> _clocks = new();
 
         public void RegisterRoot(ClockBase clock)
         {

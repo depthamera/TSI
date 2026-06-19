@@ -6,9 +6,9 @@ namespace TSI.Core.Time
     public readonly struct TimeHierarchyResult
     {
         public readonly List<ClockBase> RootClocks;
-        public readonly Dictionary<TimeLayer, IClock> Clocks;
+        public readonly Dictionary<TimeLayerSO, IClock> Clocks;
 
-        public TimeHierarchyResult(List<ClockBase> rootClocks, Dictionary<TimeLayer, IClock> clocks)
+        public TimeHierarchyResult(List<ClockBase> rootClocks, Dictionary<TimeLayerSO, IClock> clocks)
         {
             RootClocks = rootClocks;
             Clocks = clocks;

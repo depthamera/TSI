@@ -5,29 +5,30 @@ using MessagePipe;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
+using TSI.Core;
 
 namespace TSI.Demo.Time
 {
     public class TimePhysicsTestLifetimeScope : LifetimeScope
     {
-        [SerializeField] private ManualEventSystem eventSystem;
+        [SerializeField] private TimeHierarchyProfileSO _timeHierarchy;
+        [SerializeField] private ProjectTimeSettingsSO _projectTimeSettings;
+
+        // TODO: 이거 등록하고 사용해서 기존 데모 씬에 수정된 내용들 반영.
     
         protected override void Configure(IContainerBuilder builder)
         {
             var options = builder.RegisterMessagePipe();
-            builder.RegisterMessageBroker<TimeLayer, TickMessage>(options);
-        
-            builder.RegisterComponent(eventSystem)
-                .AsSelf();
-        
-            builder.Register<UnityInputUpdater>(Lifetime.Singleton)
-                .AsImplementedInterfaces();
+            builder.RegisterMessageBroker<TimeLayerSO, TickMessage>(options);
 
-            builder.Register<DefaultTimeHierarchyFactory>(Lifetime.Singleton)
-                .AsImplementedInterfaces();
-        
-            builder.RegisterEntryPoint<TimeManager>()
-                .AsSelf();
+            builder.RegisterComponent(_projectTimeSettings);
+            builder.Register<PhysicsInterpolationManager>(Lifetime.Singleton);
+
+            builder.RegisterComponent(_timeHierarchy);
+
+            builder.Register<ITimeHierarchyFactory, SOTimeHierarchyFactory>(Lifetime.Singleton);
+
+            builder.RegisterEntryPoint<TimeManager>().AsSelf();
         }
     }
 }

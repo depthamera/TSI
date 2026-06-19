@@ -1,4 +1,5 @@
 using System;
+using TSI.Core;
 using TSI.Core.Physics;
 using TSI.Core.Time;
 using UnityEngine;
@@ -15,20 +16,20 @@ namespace TSI.App.Physics
         private IPhysicsBody _body;
         
         [Inject]
-        public void Initialize(TimeManager timeManager)
+        public void Initialize(PhysicsInterpolationManager interpolationManager)
         {
             if (TryGetComponent<Rigidbody>(out var rb3d))
                 _body = new PhysicsBody3D(rb3d);
             else if(TryGetComponent<Rigidbody2D>(out var rb2d))
                 _body = new PhysicsBody2D(rb2d);
 
+
             if (!renderTransform)
             {
                 renderTransform = transform.GetChild(0).GetComponent<Transform>();
             }
             
-            var physicsClock = timeManager.GetClock<PhysicsClock>(TimeLayer.Physics);
-            physicsClock.Register(_body, renderTransform);
+            interpolationManager.Register(_body, renderTransform);
         }
     }
 }

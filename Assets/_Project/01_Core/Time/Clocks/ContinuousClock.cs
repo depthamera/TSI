@@ -6,7 +6,7 @@ namespace TSI.Core.Time
 {
     public class ContinuousClock : ClockBase
     {
-        public ContinuousClock(IPublisher<TimeLayer, TickMessage> publisher, TimeLayer layer) : base(publisher, layer) {}
+        public ContinuousClock(IPublisher<TimeLayerSO, TickMessage> publisher, TimeLayerSO layer) : base(publisher, layer) {}
         
         internal override void Tick(float deltaTime)
         {
