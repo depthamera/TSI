@@ -1,7 +1,4 @@
-using System;
 using TSI.Core;
-using TSI.Core.Physics;
-using TSI.Core.Time;
 using UnityEngine;
 using VContainer;
 
@@ -11,25 +8,17 @@ namespace TSI.App.Physics
     [AddComponentMenu("Physics/Custom Interpolation")]
     public class PhysicsBodyComponent : MonoBehaviour
     {
-        [SerializeField] private Transform renderTransform;
-
-        private IPhysicsBody _body;
-        
         [Inject]
         public void Initialize(PhysicsInterpolationManager interpolationManager)
         {
             if (TryGetComponent<Rigidbody>(out var rb3d))
-                _body = new PhysicsBody3D(rb3d);
-            else if(TryGetComponent<Rigidbody2D>(out var rb2d))
-                _body = new PhysicsBody2D(rb2d);
-
-
-            if (!renderTransform)
             {
-                renderTransform = transform.GetChild(0).GetComponent<Transform>();
+                interpolationManager.Register(transform, () => rb3d.position);
             }
-            
-            interpolationManager.Register(_body, renderTransform);
+            else if (TryGetComponent<Rigidbody2D>(out var rb2d))
+            {
+                interpolationManager.Register(transform, () => (Vector3)rb2d.position);
+            }
         }
     }
 }

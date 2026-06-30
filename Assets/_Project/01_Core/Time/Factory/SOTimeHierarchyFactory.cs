@@ -9,14 +9,20 @@ namespace TSI.Core
         private readonly TimeHierarchyProfileSO _profile;
         private readonly IPublisher<TimeLayerSO, TickMessage> _publisher;
         private readonly IPublisher<PhysicsInterpolationMessage> _intertpolationPublisher;
+        private readonly IPublisher<TimeLayerSO, TimeStateMessage> _statePublisher;
+        private readonly PhysicsInterpolationManager _interpolationManager;
 
         public SOTimeHierarchyFactory
             (TimeHierarchyProfileSO profile, IPublisher<TimeLayerSO, TickMessage> publisher,
-            IPublisher<PhysicsInterpolationMessage> interpolationPublisher)
+            IPublisher<PhysicsInterpolationMessage> interpolationPublisher,
+            IPublisher<TimeLayerSO, TimeStateMessage> statePublisher,
+            PhysicsInterpolationManager interpolationManager)
         {
             _profile = profile;
             _publisher = publisher;
             _intertpolationPublisher = interpolationPublisher;
+            _statePublisher = statePublisher;
+            _interpolationManager = interpolationManager;
         }
 
         public TimeHierarchyResult Create()
@@ -36,9 +42,10 @@ namespace TSI.Core
             {
                 ClockBase clock = node.ClockType switch
                 {
-                    ClockType.Continuous => new ContinuousClock(_publisher, node.LayerKey),
-                    ClockType.Fixed => new FixedClock(_publisher, node.LayerKey),
-                    ClockType.Physics => new PhysicsClock(_publisher, node.LayerKey, _intertpolationPublisher),
+                    ClockType.Continuous => new ContinuousClock(_publisher, node.LayerKey, _statePublisher),
+                    ClockType.Fixed => new FixedClock(_publisher, node.LayerKey, _statePublisher),
+                    ClockType.Physics => new PhysicsClock(_publisher, node.LayerKey, _intertpolationPublisher, _statePublisher,
+                        _interpolationManager.RestorePositions),
                     ClockType.Input => new InputClock(null),
                     _ => throw new System.NotImplementedException(),
                 };

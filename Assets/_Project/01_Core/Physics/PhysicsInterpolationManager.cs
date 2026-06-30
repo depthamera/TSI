@@ -2,19 +2,19 @@ using MessagePipe;
 using R3;
 using System;
 using System.Collections.Generic;
-using TSI.Core.Physics;
 using UnityEngine;
 
-namespace TSI.Core { 
+namespace TSI.Core
+{
     public class PhysicsInterpolationManager : IDisposable
     {
-        private readonly List<RigidbodyEntry> _entries = new();
+        private readonly List<InterpolationEntry> _entries = new();
         private readonly R3.DisposableBag _disposables;
 
-        private class RigidbodyEntry
+        private class InterpolationEntry
         {
-            public IPhysicsBody Body;
-            public Transform RenderTransform;
+            public Transform Transform;
+            public Func<Vector3> GetPhysicsPosition;
             public Vector3 PrevPosition;
             public Vector3 CurrentPosition;
         }
@@ -22,38 +22,48 @@ namespace TSI.Core {
         public PhysicsInterpolationManager(ISubscriber<PhysicsInterpolationMessage> subscriber)
         {
             subscriber
-                .Subscribe(OnInterpoationTick)
+                .Subscribe(OnInterpolationTick)
                 .AddTo(ref _disposables);
         }
 
-        public void Register(IPhysicsBody body, Transform renderTransform)
+        public void Register(Transform transform, Func<Vector3> getPhysicsPosition)
         {
-            _entries.Add(new RigidbodyEntry
+            var position = getPhysicsPosition();
+            _entries.Add(new InterpolationEntry
             {
-                Body = body,
-                RenderTransform = renderTransform,
-                PrevPosition = body.Position,
-                CurrentPosition = body.Position,
+                Transform = transform,
+                GetPhysicsPosition = getPhysicsPosition,
+                PrevPosition = position,
+                CurrentPosition = position,
             });
         }
 
-        public void Unregister(IPhysicsBody body)
+        public void Unregister(Transform transform)
         {
-            _entries.RemoveAll(e => e.Body == body);
+            _entries.RemoveAll(e => e.Transform == transform);
         }
 
-        private void OnInterpoationTick(PhysicsInterpolationMessage message)
+        private void OnInterpolationTick(PhysicsInterpolationMessage message)
         {
             foreach (var entry in _entries)
             {
-                if(message.StepCount > 0)
+                if (message.StepCount > 0)
                 {
                     entry.PrevPosition = entry.CurrentPosition;
-                    entry.CurrentPosition = entry.Body.Position;
+                    entry.CurrentPosition = entry.GetPhysicsPosition();
                 }
 
-                entry.RenderTransform.position = Vector3.Lerp(entry.PrevPosition, entry.CurrentPosition, message.Alpha);          
-            }               
+                entry.Transform.position = Vector3.Lerp(
+                    entry.PrevPosition, entry.CurrentPosition, message.Alpha);
+            }
+        }
+
+        public void RestorePositions()
+        {
+            foreach (var entry in _entries)
+            {
+                entry.Transform.position = entry.CurrentPosition;
+            }
         }
 
         public void Dispose()
