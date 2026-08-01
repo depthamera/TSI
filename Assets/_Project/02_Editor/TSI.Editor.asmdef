@@ -1,0 +1,20 @@
+{
+    "name": "TSI.Editor",
+    "rootNamespace": "TSI.Editor",
+    "references": [
+        "GUID:6051623d03f873542b1ae483443c0509",
+        "GUID:69448af7b92c7f342b298e06a37122aa",
+        "GUID:8a8d64e076387b545a54fe85dd4bede0"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

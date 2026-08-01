@@ -1,5 +1,6 @@
 using TSI.Core.Scene;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using VContainer;
 
 namespace TSI.Demo

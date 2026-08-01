@@ -16,27 +16,27 @@ MonoBehaviour:
   m_GUID: 0e9ac38c8d5596d4eb35fea7b644ce13
   m_SerializeEntries:
   - m_GUID: 3c0f768669b271046878467dd3d1d975
-    m_Address: Scene/Scenes/00/Main
+    m_Address: Demo/Main
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ae05e22e055216e4d9cc7f5e968c1941
-    m_Address: Scene/Scenes/00/Bootstrap
+    m_Address: Demo/Bootstrap
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: bd8fdf565729e0e4fbc6676625ba87d1
-    m_Address: Scene/Scenes/00/Game
+    m_Address: Demo/Game2
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e44886b5d6737a94d8b0acf26036fc15
-    m_Address: Scene/Scenes/00/Select
+    m_Address: Demo/Select
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: f0796fb0b0c9a1648969e407781920a9
-    m_Address: Scene/Scenes/00/Loading
+    m_Address: Demo/Loading
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

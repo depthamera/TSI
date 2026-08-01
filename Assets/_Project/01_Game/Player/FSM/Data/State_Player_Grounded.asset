@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d4ea3feb5f60f44a86c120dda64a340, type: 3}
+  m_Name: State_Player_Grounded
+  m_EditorClassIdentifier: TSI.Game::TSI.Game.Player.PlayerGroundedState
+  parentState: {fileID: 11400000, guid: 9c2ab38020f3c3a44aef01608992970a, type: 2}
+  defaultChildState: {fileID: 11400000, guid: 09d81d1620562504d827d9be765e0441, type: 2}
+  regions: []
+  tags: []
+  movementOverride:
+    overrideCanMove: 1
+    canMove: 1
+    overrideSpeedMultiplier: 0
+    speedMultiplier: 0
+    overrideGravityScale: 0
+    gravityScale: 0

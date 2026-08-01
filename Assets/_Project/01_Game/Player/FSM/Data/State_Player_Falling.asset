@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75ba8b80f4626c54f8e77202acfeffdb, type: 3}
+  m_Name: State_Player_Falling
+  m_EditorClassIdentifier: TSI.Game::TSI.Game.Player.PlayerFallingState
+  parentState: {fileID: 11400000, guid: 9fab2c080486bc445ac455bf9c013609, type: 2}
+  defaultChildState: {fileID: 0}
+  movementOverride:
+    overrideCanMove: 0
+    canMove: 0
+    overrideSpeedMultiplier: 0
+    speedMultiplier: 0
+    overrideGravityScale: 0
+    gravityScale: 0

@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e658445effb0b5d4e9206fef6c045bbf, type: 3}
   m_Name: TimeHierarchyProfile
   m_EditorClassIdentifier: TSI.Core::TSI.Core.TimeHierarchyProfileSO
-  rootNodes:
+  Nodes:
   - LayerKey: {fileID: 11400000, guid: c2ed84ddb1aa4bb4390c631c7bb77bbf, type: 2}
     ClockType: 0
-    Children:
-    - LayerKey: {fileID: 0}
-      ClockType: 0
-      Children: []
-  - LayerKey: {fileID: 0}
+    Depth: 0
+  - LayerKey: {fileID: 11400000, guid: da46423b8500cbc4496c5731071b0bd3, type: 2}
     ClockType: 0
-    Children: []
+    Depth: 1
+  - LayerKey: {fileID: 11400000, guid: 09ab2bb1d66e1a14b956ad5a4068a788, type: 2}
+    ClockType: 0
+    Depth: 1

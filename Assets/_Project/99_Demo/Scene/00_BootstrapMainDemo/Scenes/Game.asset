@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f879f018a88b914fb3d3e18efca47df, type: 3}
   m_Name: Game
   m_EditorClassIdentifier: TSI.Core::TSI.Core.Scene.SceneProfile
-  scenePath: Scene/Scenes/00/Game
+  sceneAsset: {fileID: 102900000, guid: bd8fdf565729e0e4fbc6676625ba87d1, type: 3}
+  scenePath: Demo/Game2

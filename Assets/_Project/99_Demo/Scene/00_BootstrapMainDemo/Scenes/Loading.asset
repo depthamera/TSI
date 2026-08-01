@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f879f018a88b914fb3d3e18efca47df, type: 3}
   m_Name: Loading
   m_EditorClassIdentifier: TSI.Core::TSI.Core.Scene.SceneProfile
-  scenePath: Scene/Scenes/00/Loading
+  sceneAsset: {fileID: 102900000, guid: f0796fb0b0c9a1648969e407781920a9, type: 3}
+  scenePath: Demo/Loading

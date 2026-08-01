@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f879f018a88b914fb3d3e18efca47df, type: 3}
   m_Name: Main
   m_EditorClassIdentifier: TSI.Core::TSI.Core.Scene.SceneProfile
-  scenePath: Scene/Scenes/00/Main
+  sceneAsset: {fileID: 102900000, guid: 3c0f768669b271046878467dd3d1d975, type: 3}
+  scenePath: Demo/Main
